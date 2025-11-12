@@ -95,3 +95,24 @@ class AssignmentUseCase:
             raise ValueError("Not found or permission denied")
 
         updated = await self.repo.update_status(assignment_id, status)
+
+
+        try:
+            if status.lower() == "completed":
+                await self.client.post(f"{settings.PET_SERVICE_URL}/pet-state/increase-mood/{user_id}", timeout=5)
+                await self.client.post(f"{settings.NOTIFICATION_SERVICE_URL}/notify/task-completed/{user_id}", timeout=5)
+            elif status.lower() == "failed":
+                await self.client.post(f"{settings.PET_SERVICE_URL}/pet-state/decrease-health/{user_id}", timeout=5)
+                await self.client.post(f"{settings.NOTIFICATION_SERVICE_URL}/notify/task-failed/{user_id}", timeout=5)
+        except httpx.RequestError as e:
+            log.warning(f"Failed to call dependent services during status update for {user_id}: {e}")
+            pass # Log error
+
+        return updated
+
+    async def delete(self, assignment_id: str, user_id: str):
+        assignment = await self.repo.get_by_id(assignment_id)
+        if not assignment or assignment.get("user_id") != user_id:
+            raise ValueError("Not found or permission denied")
+        
+        return await self.repo.delete(assignment_id)
