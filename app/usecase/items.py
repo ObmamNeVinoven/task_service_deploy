@@ -2,19 +2,16 @@
 
 import httpx
 from typing import List, Dict, Any
+import logging # 1. ADD LOGGING IMPORT
 from app.domain.repositories import IUserRepository, IAssignmentRepository
 from app.settings import settings
 from app.adapters.http.schemas import UserCreateSchema, AssignmentCreateSchema
 
-# ИМПОРТИРУЕМ ИЗ НОВОГО "ЧИСТОГО" ФАЙЛА
-from app.infrastructure.auth_utils import (
-    hash_password, 
-    verify_password, 
-    create_access_token
-)
+# 2. GET THE LOGGER
+log = logging.getLogger(__name__)
 
 class AuthUseCase:
-    """Бизнес-логика для аутентификации"""
+    """Business logic for authentication"""
     def __init__(self, user_repo: IUserRepository):
         self.user_repo = user_repo
         self.client = httpx.AsyncClient()
@@ -24,24 +21,27 @@ class AuthUseCase:
         if existing:
             raise ValueError("User already exists")
         
-        hashed = hash_password(user_data.password)
+        hashed = hash_password(user_data.password) 
         user_id = await self.user_repo.create(user_data.email, hashed)
         
+        # 3. ADD PROPER LOGGING
+        log.info(f"New user created: {user_id} ({user_data.email})")
+
         try:
-            # Вызов Pet-Service
             await self.client.post(f"{settings.PET_SERVICE_URL}/pet-state/create/{user_id}", timeout=5)
-            # Вызов Notification-Service
             await self.client.post(
                 f"{settings.NOTIFICATION_SERVICE_URL}/notifications",
                 json={
                     "user_id": user_id,
-                    "message": "Добро пожаловать! Ваш аккаунт и питомец успешно созданы.",
+                    "message": "Welcome! Your account and pet were created.",
                     "type": "system",
                 },
                 timeout=5,
             )
-        except httpx.RequestError:
-            pass # Логирование ошибки
+        except httpx.RequestError as e:
+            # This is a "Proper Log": We log the error but don't crash
+            log.warning(f"Failed to call dependent services for {user_id}: {e}")
+            pass # Don't fail the registration if pet-service is down
 
         token = create_access_token({"sub": user_id})
         return {"access_token": token, "token_type": "bearer"}
@@ -53,10 +53,9 @@ class AuthUseCase:
         
         token = create_access_token({"sub": str(user["_id"])})
         return {"access_token": token, "token_type": "bearer"}
-    
 
 class AssignmentUseCase:
-    """Бизнес-логика для заданий"""
+    """Business logic for assignments"""
     def __init__(self, assignment_repo: IAssignmentRepository):
         self.repo = assignment_repo
         self.client = httpx.AsyncClient()
@@ -80,13 +79,13 @@ class AssignmentUseCase:
                 f"{settings.NOTIFICATION_SERVICE_URL}/notifications",
                 json={
                     "user_id": user_id,
-                    "message": f"Новое задание: {item.title}",
+                    "message": f"New assignment: {item.title}",
                     "type": "task",
                 },
                 timeout=5,
             )
         except httpx.RequestError:
-            pass # Логирование
+            pass # Log error
 
         return new_assignment
 
@@ -96,22 +95,3 @@ class AssignmentUseCase:
             raise ValueError("Not found or permission denied")
 
         updated = await self.repo.update_status(assignment_id, status)
-
-        try:
-            if status.lower() == "completed":
-                await self.client.post(f"{settings.PET_SERVICE_URL}/pet-state/increase-mood/{user_id}", timeout=5)
-                await self.client.post(f"{settings.NOTIFICATION_SERVICE_URL}/notify/task-completed/{user_id}", timeout=5)
-            elif status.lower() == "failed":
-                await self.client.post(f"{settings.PET_SERVICE_URL}/pet-state/decrease-health/{user_id}", timeout=5)
-                await self.client.post(f"{settings.NOTIFICATION_SERVICE_URL}/notify/task-failed/{user_id}", timeout=5)
-        except httpx.RequestError:
-            pass # Логирование
-
-        return updated
-
-    async def delete(self, assignment_id: str, user_id: str):
-        assignment = await self.repo.get_by_id(assignment_id)
-        if not assignment or assignment.get("user_id") != user_id:
-            raise ValueError("Not found or permission denied")
-        
-        return await self.repo.delete(assignment_id)
