@@ -1,13 +1,19 @@
-# task-service/app/usecase/items.py
-
 import httpx
 from typing import List, Dict, Any
-import logging # 1. ADD LOGGING IMPORT
+import logging 
 from app.domain.repositories import IUserRepository, IAssignmentRepository
 from app.settings import settings
 from app.adapters.http.schemas import UserCreateSchema, AssignmentCreateSchema
 
-# 2. GET THE LOGGER
+# --- ВОТ ЗДЕСЬ БЫЛА ОШИБКА ---
+# Нам нужно импортировать verify_password из auth_utils
+from app.infrastructure.auth_utils import (
+    hash_password, 
+    verify_password,  # <--- ДОБАВЛЕНО
+    create_access_token
+)
+
+# Setup Logger
 log = logging.getLogger(__name__)
 
 class AuthUseCase:
@@ -24,7 +30,6 @@ class AuthUseCase:
         hashed = hash_password(user_data.password) 
         user_id = await self.user_repo.create(user_data.email, hashed)
         
-        # 3. ADD PROPER LOGGING
         log.info(f"New user created: {user_id} ({user_data.email})")
 
         try:
@@ -39,15 +44,15 @@ class AuthUseCase:
                 timeout=5,
             )
         except httpx.RequestError as e:
-            # This is a "Proper Log": We log the error but don't crash
             log.warning(f"Failed to call dependent services for {user_id}: {e}")
-            pass # Don't fail the registration if pet-service is down
+            pass 
 
         token = create_access_token({"sub": user_id})
         return {"access_token": token, "token_type": "bearer"}
 
     async def login(self, email: str, password: str) -> Dict[str, Any]:
         user = await self.user_repo.get_by_email(email)
+        # Теперь verify_password определена и ошибки не будет
         if not user or not verify_password(password, user["password"]):
             raise ValueError("Invalid credentials")
         
@@ -85,8 +90,8 @@ class AssignmentUseCase:
                 timeout=5,
             )
         except httpx.RequestError:
-            pass # Log error
-
+            pass
+            
         return new_assignment
 
     async def update_status(self, assignment_id: str, status: str, user_id: str):
@@ -95,7 +100,6 @@ class AssignmentUseCase:
             raise ValueError("Not found or permission denied")
 
         updated = await self.repo.update_status(assignment_id, status)
-
 
         try:
             if status.lower() == "completed":
@@ -106,7 +110,7 @@ class AssignmentUseCase:
                 await self.client.post(f"{settings.NOTIFICATION_SERVICE_URL}/notify/task-failed/{user_id}", timeout=5)
         except httpx.RequestError as e:
             log.warning(f"Failed to call dependent services during status update for {user_id}: {e}")
-            pass # Log error
+            pass 
 
         return updated
 
