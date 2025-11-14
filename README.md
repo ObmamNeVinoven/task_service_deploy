@@ -34,8 +34,8 @@ The service is deployed on **Render** using Docker. It connects to a **MongoDB A
 * `MONGO_URI`: [Secret] The connection string for the MongoDB Atlas cluster.
 * `DB_NAME`: The name of the database (e.g., `assignmentdb`).
 * `JWT_SECRET`: [Secret] A secret key for signing JWT tokens.
-* `PET_SERVICE_URL`: (Dummy) `http://dummy.com`
-* `NOTIFICATION_SERVICE_URL`: (Dummy) `http://dummy.com`
+* `PET_SERVICE_URL`: https://pet-service-dztd.onrender.com
+* `NOTIFICATION_SERVICE_URL`: https://notification-service-huk0.onrender.com
 
 
 ## 👤 Authors
