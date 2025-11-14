@@ -31,9 +31,9 @@ This is the primary production deployment required by the assignment.
 The service is deployed on **Render** using Docker. It connects to a **MongoDB Atlas** `M0` free-tier cluster.
 
 **Environment Variables configured in Render:**
-* `MONGO_URI`: [Secret] The connection string for the MongoDB Atlas cluster.
-* `DB_NAME`: The name of the database (e.g., `assignmentdb`).
-* `JWT_SECRET`: [Secret] A secret key for signing JWT tokens.
+* `MONGO_URI`: mongodb+srv://task_user:1234@cluster0.iq3k1vm.mongodb.net/?appName=Cluster0
+* `DB_NAME`: taskdb
+* `JWT_SECRET`: 73016ee177ac3d2325fd05a53856b6dd
 * `PET_SERVICE_URL`: https://pet-service-dztd.onrender.com
 * `NOTIFICATION_SERVICE_URL`: https://notification-service-huk0.onrender.com
 
