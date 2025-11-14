@@ -17,7 +17,7 @@ This service uses **MongoDB** for data persistence and follows **Clean Architect
 
 ---
 
-## ☁️ 1. Cloud Deployment (Render + MongoDB Atlas)
+## ☁️ Cloud Deployment (Render + MongoDB Atlas)
 
 This is the primary production deployment required by the assignment.
 
@@ -37,41 +37,6 @@ The service is deployed on **Render** using Docker. It connects to a **MongoDB A
 * `PET_SERVICE_URL`: (Dummy) `http://dummy.com`
 * `NOTIFICATION_SERVICE_URL`: (Dummy) `http://dummy.com`
 
----
-
-## 🖥 2. Local Development (Docker Compose)
-
-This mode is used for local development and testing, including interaction with other microservices (`pet-service` and `notification-service`).
-
-This configuration runs a **fully High-Availability (HA)** system of 11 containers:
-* 3 x MongoDB Replica Set nodes 
-* 1 x `mongo-setup` 
-* 2 x `task-service` 
-* 2 x `pet-service` 
-* 2 x `notification-service` 
-* 1 x `nginx-lb` (Load Balancer)
-
-### Setup Instructions
-
-**Prerequisites:**
-* Docker
-* Docker Compose
-
-**How to Run:**
-
-1.  Ensure all 3 service folders (`task-service`, `pet-service`, `notification-service`) and the 2 config files (`docker-compose.yml`, `nginx.conf`) are in the same root directory.
-2.  Run the following command in your terminal:
-
-    ```bash
-    docker-compose up --build
-    ```
-
-**Local Endpoints:**
-* **Task Service:** `http://localhost:8081`
-* **Pet Service:** `http://localhost:8082`
-* **Notification Service:** `http://localhost:8083`
-
----
 
 ## 👤 Authors
 
